@@ -1,0 +1,13 @@
+﻿archive/
+data/
+*.csv
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+outputs/figures/*.png
+outputs/metrics/*.csv
+.DS_Store
+.vscode/
+.idea/
