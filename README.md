@@ -1,29 +1,29 @@
-# Smart Bookshelf
+﻿# Smart Bookshelf
 
-Прототип книжного рекомендательного сервиса на датасете Goodbooks-10k.
-Реализует и сравнивает четыре подхода: popularity baseline, content-based
-(TF-IDF по названиям и тегам), item-based collaborative filtering и SVD
-матричное разложение. Качество оценивается по Precision@K, Recall@K и nDCG@K
-на отложенной выборке.
+ÐŸÑ€Ð¾Ñ‚Ð¾Ñ‚Ð¸Ð¿ ÐºÐ½Ð¸Ð¶Ð½Ð¾Ð³Ð¾ Ñ€ÐµÐºÐ¾Ð¼ÐµÐ½Ð´Ð°Ñ‚ÐµÐ»ÑŒÐ½Ð¾Ð³Ð¾ ÑÐµÑ€Ð²Ð¸ÑÐ° Ð½Ð° Ð´Ð°Ñ‚Ð°ÑÐµÑ‚Ðµ Goodbooks-10k.
+Ð ÐµÐ°Ð»Ð¸Ð·ÑƒÐµÑ‚ Ð¸ ÑÑ€Ð°Ð²Ð½Ð¸Ð²Ð°ÐµÑ‚ Ñ‡ÐµÑ‚Ñ‹Ñ€Ðµ Ð¿Ð¾Ð´Ñ…Ð¾Ð´Ð°: popularity baseline, content-based
+(TF-IDF Ð¿Ð¾ Ð½Ð°Ð·Ð²Ð°Ð½Ð¸ÑÐ¼ Ð¸ Ñ‚ÐµÐ³Ð°Ð¼), item-based collaborative filtering Ð¸ SVD
+Ð¼Ð°Ñ‚Ñ€Ð¸Ñ‡Ð½Ð¾Ðµ Ñ€Ð°Ð·Ð»Ð¾Ð¶ÐµÐ½Ð¸Ðµ. ÐšÐ°Ñ‡ÐµÑÑ‚Ð²Ð¾ Ð¾Ñ†ÐµÐ½Ð¸Ð²Ð°ÐµÑ‚ÑÑ Ð¿Ð¾ Precision@K, Recall@K Ð¸ nDCG@K
+Ð½Ð° Ð¾Ñ‚Ð»Ð¾Ð¶ÐµÐ½Ð½Ð¾Ð¹ Ð²Ñ‹Ð±Ð¾Ñ€ÐºÐµ.
 
-## Структура
+## Ð¡Ñ‚Ñ€ÑƒÐºÑ‚ÑƒÑ€Ð°
 
-- `archive/` — исходные CSV (в .gitignore)
-- `src/` — код: data_loader, eda, metrics, модели
-- `scripts/` — тонкие оркестраторы
-- `outputs/figures` — графики EDA
-- `outputs/metrics` — сводные таблицы метрик
-- `notebooks/` — финальный отчёт
+- `archive/` â€” Ð¸ÑÑ…Ð¾Ð´Ð½Ñ‹Ðµ CSV (Ð² .gitignore)
+- `src/` â€” ÐºÐ¾Ð´: data_loader, eda, metrics, Ð¼Ð¾Ð´ÐµÐ»Ð¸
+- `scripts/` â€” Ñ‚Ð¾Ð½ÐºÐ¸Ðµ Ð¾Ñ€ÐºÐµÑÑ‚Ñ€Ð°Ñ‚Ð¾Ñ€Ñ‹
+- `outputs/figures` â€” Ð³Ñ€Ð°Ñ„Ð¸ÐºÐ¸ EDA
+- `outputs/metrics` â€” ÑÐ²Ð¾Ð´Ð½Ñ‹Ðµ Ñ‚Ð°Ð±Ð»Ð¸Ñ†Ñ‹ Ð¼ÐµÑ‚Ñ€Ð¸Ðº
+- `notebooks/` â€” Ñ„Ð¸Ð½Ð°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¾Ñ‚Ñ‡Ñ‘Ñ‚
 
-## Пайплайн
+## ÐŸÐ°Ð¹Ð¿Ð»Ð°Ð¹Ð½
 
-1. `python src/data_loader.py` — профайлинг датасета
-2. `python scripts/run_eda.py` — графики EDA в `outputs/figures`
-3. Модели: Popularity → Content-Based → Item-CF → SVD
-4. Оценка: P@K, R@K, nDCG@K на holdout
-5. Гибрид + выводы
+1. `python src/data_loader.py` â€” Ð¿Ñ€Ð¾Ñ„Ð°Ð¹Ð»Ð¸Ð½Ð³ Ð´Ð°Ñ‚Ð°ÑÐµÑ‚Ð°
+2. `python scripts/run_eda.py` â€” Ð³Ñ€Ð°Ñ„Ð¸ÐºÐ¸ EDA Ð² `outputs/figures`
+3. ÐœÐ¾Ð´ÐµÐ»Ð¸: Popularity â†’ Content-Based â†’ Item-CF â†’ SVD
+4. ÐžÑ†ÐµÐ½ÐºÐ°: P@K, R@K, nDCG@K Ð½Ð° holdout
+5. Ð“Ð¸Ð±Ñ€Ð¸Ð´ + Ð²Ñ‹Ð²Ð¾Ð´Ñ‹
 
-## Запуск
+## Ð—Ð°Ð¿ÑƒÑÐº
 
 ```powershell
 python -m venv .venv
@@ -31,3 +31,10 @@ python -m venv .venv
 pip install -r requirements.txt
 python src\data_loader.py
 python scripts\run_eda.py
+
+## Данные
+
+`scripts/download_data.py` скачивает пять CSV в `archive/`. Все результаты в
+отчёте получены на канонической версии датасета: `ratings.csv` — 981 756
+строк. Скрипт проверяет это число после загрузки. Если `archive/` уже наполнен,
+загрузка пропускается.
