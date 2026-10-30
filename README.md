@@ -34,7 +34,11 @@ python scripts\run_eda.py
 
 ## Данные
 
-`scripts/download_data.py` скачивает пять CSV в `archive/`. Все результаты в
-отчёте получены на канонической версии датасета: `ratings.csv` — 981 756
-строк. Скрипт проверяет это число после загрузки. Если `archive/` уже наполнен,
-загрузка пропускается.
+Источник — Kaggle-датасет `zygmunt/goodbooks-10k` (как указано в задании).
+`archive/books.csv` использует схему: `book_id` — локальный ID (1…10000),
+`goodreads_book_id` — глобальный ID Goodreads. `ratings.book_id` ссылается
+на `books.book_id`, `book_tags.goodreads_book_id` — на `books.goodreads_book_id`.
+
+`scripts/download_data.py` скачивает пять CSV в `archive/` и проверяет, что
+`ratings.csv` содержит 981 756 строк (каноническая версия). Если `archive/`
+уже наполнен, загрузка пропускается.

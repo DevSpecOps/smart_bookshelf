@@ -52,17 +52,17 @@ def _key_checks(frames):
 
     if "books" in frames and "book_tags" in frames:
         books, bt = frames["books"], frames["book_tags"]
-        b_global = set(books["book_id"].astype("int64"))
+        b_global = set(books["goodreads_book_id"].astype("int64"))
         bt_ids = set(bt["goodreads_book_id"].astype("int64"))
-        print(f"books.book_id uniq               = {len(b_global)}")
+        print(f"books.goodreads_book_id uniq     = {len(b_global)}")
         print(f"book_tags.goodreads_book_id uniq = {len(bt_ids)}")
         print(f"overlap                          = {len(b_global & bt_ids)}")
 
     if "books" in frames and "ratings" in frames:
         books, r = frames["books"], frames["ratings"]
-        b_local = set(books["id"].astype("int64"))
+        b_local = set(books["book_id"].astype("int64"))
         r_ids = set(r["book_id"].astype("int64"))
-        print(f"books.id uniq        = {len(b_local)}")
+        print(f"books.book_id uniq   = {len(b_local)}")
         print(f"ratings.book_id uniq = {len(r_ids)}")
         print(f"overlap              = {len(b_local & r_ids)}")
 
