@@ -10,6 +10,7 @@ from popularity import PopularityRecommender
 from content_based import ContentBasedRecommender
 from item_cf import ItemBasedCF
 from svd_model import SVDRecommender
+from hybrid import HybridRecommender
 
 FIG_DIR = PROJECT_ROOT / "outputs" / "figures"
 METRICS_DIR = PROJECT_ROOT / "outputs" / "metrics"
@@ -23,8 +24,7 @@ N_EVAL_USERS = 5000
 
 def per_user_split(ratings, test_size=0.2, seed=SEED):
     rng = np.random.default_rng(seed)
-    train_parts = []
-    test_parts = []
+    train_parts, test_parts = [], []
     for _, group in ratings.groupby("user_id", sort=False):
         idx = group.index.to_numpy()
         if len(idx) < 5:
@@ -46,6 +46,13 @@ def build_models(train, books, book_tags, tags):
     models["content_based"] = ContentBasedRecommender().fit(books, book_tags, tags, train)
     models["item_cf"] = ItemBasedCF().fit(train)
     models["svd"] = SVDRecommender().fit(train)
+    hybrid = HybridRecommender(
+        content_model=models["content_based"],
+        cf_model=models["item_cf"],
+        svd_model=models["svd"],
+        popularity_model=models["popularity_bayes"],
+    ).fit(train)
+    models["hybrid"] = hybrid
     return models
 
 
@@ -95,12 +102,13 @@ def compute_coverage(recs_cache, n=10):
 
 def plot_comparison(summary, threshold):
     subset = summary[summary["threshold"] == threshold]
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
     for ax, metric in zip(axes, ["precision", "recall", "ndcg"]):
         sns.barplot(data=subset, x="k", y=metric, hue="model", ax=ax)
         ax.set_title(f"{metric.capitalize()}@K (threshold>={threshold})")
         ax.set_xlabel("K")
         ax.set_ylabel(metric)
+        ax.legend(title="model", fontsize=8)
     fig.tight_layout()
     path = FIG_DIR / f"09_model_comparison_thr{threshold}.png"
     fig.savefig(path, dpi=120, bbox_inches="tight")
@@ -109,15 +117,34 @@ def plot_comparison(summary, threshold):
 
 
 def plot_coverage(cov_df):
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(10, 5))
     sns.barplot(data=cov_df, x="model", y="coverage_at_10", ax=ax, color="teal")
     ax.set_title("Catalog coverage@10")
     ax.set_xlabel("model")
     ax.set_ylabel("coverage@10")
     for i, row in enumerate(cov_df.itertuples()):
-        ax.text(i, row.coverage_at_10 + 0.01, f"{row.coverage_at_10:.4f}", ha="center", fontsize=9)
+        ax.text(i, row.coverage_at_10 + 0.01, f"{row.coverage_at_10:.4f}", ha="center", fontsize=8)
+    plt.xticks(rotation=30, ha="right")
     fig.tight_layout()
     path = FIG_DIR / "10_coverage.png"
+    fig.savefig(path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    print(f"saved: {path}")
+
+
+def plot_precision_coverage(summary, cov_df, k=10, threshold=4):
+    subset = summary[(summary["threshold"] == threshold) & (summary["k"] == k)]
+    merged = subset.merge(cov_df, on="model")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.scatterplot(data=merged, x="coverage_at_10", y="precision", hue="model", s=140, ax=ax)
+    for row in merged.itertuples():
+        ax.annotate(row.model, (row.coverage_at_10, row.precision),
+                    xytext=(5, 5), textcoords="offset points", fontsize=9)
+    ax.set_title(f"Precision@{k} vs coverage@{k} (threshold>={threshold})")
+    ax.set_xlabel(f"coverage@{k}")
+    ax.set_ylabel(f"precision@{k}")
+    fig.tight_layout()
+    path = FIG_DIR / "11_precision_coverage.png"
     fig.savefig(path, dpi=120, bbox_inches="tight")
     plt.close(fig)
     print(f"saved: {path}")
@@ -142,18 +169,15 @@ def main():
 
     recs_cache = generate_recs(models, eligible)
     summary = compute_metrics(recs_cache, eligible, test)
-    summary_path = METRICS_DIR / "summary.csv"
-    summary.to_csv(summary_path, index=False)
-    print(f"saved: {summary_path}")
+    summary.to_csv(METRICS_DIR / "summary.csv", index=False)
 
     cov_df = compute_coverage(recs_cache, n=10)
-    cov_path = METRICS_DIR / "coverage.csv"
-    cov_df.to_csv(cov_path, index=False)
-    print(f"saved: {cov_path}")
+    cov_df.to_csv(METRICS_DIR / "coverage.csv", index=False)
 
     for thr in RELEVANCE_THRESHOLDS:
         plot_comparison(summary, thr)
     plot_coverage(cov_df)
+    plot_precision_coverage(summary, cov_df, k=10, threshold=4)
 
     print("\nSummary (threshold=4, k=10):")
     print(summary[(summary["threshold"] == 4) & (summary["k"] == 10)].to_string(index=False))
