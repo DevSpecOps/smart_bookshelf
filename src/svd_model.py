@@ -12,7 +12,9 @@ class SVDRecommender:
         self.random_state = random_state
         self.model = None
         self.trainset = None
-        self.known_items = set()
+        self.known_items = None
+        self.known_inner = None
+        self.item_to_idx = None
         self.seen = {}
 
     def fit(self, ratings):
@@ -27,7 +29,9 @@ class SVDRecommender:
             random_state=self.random_state,
         )
         self.model.fit(self.trainset)
-        self.known_items = set(int(b) for b in ratings["book_id"].unique())
+        self.known_items = np.array(sorted(ratings["book_id"].unique()), dtype=np.int64)
+        self.known_inner = np.array([self.trainset.to_inner_iid(int(b)) for b in self.known_items])
+        self.item_to_idx = {int(b): i for i, b in enumerate(self.known_items)}
         self.seen = ratings.groupby("user_id")["book_id"].apply(set).to_dict()
         return self
 
@@ -41,16 +45,30 @@ class SVDRecommender:
 
     def get_recommendations(self, user_id, N=5):
         seen = self.seen.get(user_id, set())
-        candidates = [b for b in self.known_items if b not in seen]
-        if not candidates:
+        if not seen:
             return []
-        scored = [(b, self.model.predict(user_id, b).est) for b in candidates]
-        scored.sort(key=lambda kv: -kv[1])
-        return [int(b) for b, _ in scored[:N]]
+        try:
+            uid = self.trainset.to_inner_uid(user_id)
+        except ValueError:
+            return []
+        scores = self.trainset.global_mean \
+            + self.model.bu[uid] \
+            + self.model.bi[self.known_inner] \
+            + self.model.qi[self.known_inner] @ self.model.pu[uid]
+        for b in seen:
+            idx = self.item_to_idx.get(int(b))
+            if idx is not None:
+                scores[idx] = -np.inf
+        top = np.argpartition(-scores, N)[:N]
+        top = top[np.argsort(-scores[top])]
+        return [int(self.known_items[i]) for i in top]
+
+    def recommend(self, user_id, n=10):
+        return self.get_recommendations(user_id, N=n)
 
     def coverage(self, n=10, max_users=500):
         exposed = set()
         sample = list(self.seen.keys())[:max_users]
         for uid in sample:
             exposed.update(self.get_recommendations(int(uid), n))
-        return len(exposed) / len(self.known_items) if self.known_items else 0.0
+        return len(exposed) / len(self.known_items) if self.known_items is not None else 0.0
