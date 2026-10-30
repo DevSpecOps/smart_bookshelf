@@ -1,5 +1,4 @@
 ﻿import numpy as np
-import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -15,7 +14,6 @@ class ItemBasedCF:
         self.item_index = None
         self.matrix = None
         self.item_means = None
-        self.user_means = None
         self.neighbors = None
         self.user_rated = None
 
@@ -24,25 +22,19 @@ class ItemBasedCF:
         self.item_ids = np.sort(ratings["book_id"].unique())
         self.user_index = {u: i for i, u in enumerate(self.user_ids)}
         self.item_index = {b: i for i, b in enumerate(self.item_ids)}
-
         rows = ratings["user_id"].map(self.user_index).to_numpy()
         cols = ratings["book_id"].map(self.item_index).to_numpy()
         vals = ratings["rating"].to_numpy(dtype=np.float64)
-
         self.matrix = csr_matrix((vals, (rows, cols)),
                                  shape=(len(self.user_ids), len(self.item_ids)))
-
         counts = np.asarray((self.matrix > 0).sum(axis=0)).ravel()
         sums = np.asarray(self.matrix.sum(axis=0)).ravel()
         with np.errstate(invalid="ignore", divide="ignore"):
-            means = np.where(counts > 0, sums / counts, 0.0)
-        self.item_means = means
-
+            self.item_means = np.where(counts > 0, sums / counts, 0.0)
         self.user_rated = [
             set(np.nonzero(self.matrix.getrow(i))[1].tolist())
             for i in range(self.matrix.shape[0])
         ]
-
         self.neighbors = self._compute_top_neighbors()
         return self
 
@@ -64,49 +56,44 @@ class ItemBasedCF:
                 row[i] = -np.inf
                 top = np.argpartition(-row, k)[:k]
                 top = top[np.argsort(-row[top])]
-                result[i] = [
-                    (int(j), float(row[j])) for j in top
-                    if row[j] > 0 and item_counts[j] >= self.min_ratings_per_item
-                ]
+                result[i] = [(int(j), float(row[j])) for j in top
+                             if row[j] > 0 and item_counts[j] >= self.min_ratings_per_item]
         return result
 
     def predict(self, user_id, book_id):
         if user_id not in self.user_index or book_id not in self.item_index:
-            return self.item_means[self.item_index.get(book_id, 0)] if self.item_means is not None else 0.0
+            return float(self.item_means[self.item_index.get(book_id, 0)])
         ui = self.user_index[user_id]
         bi = self.item_index[book_id]
         rated = self.user_rated[ui]
-        neigh = self.neighbors.get(bi, [])[:self.k_predict]
         num, den = 0.0, 0.0
-        for j, sim in neigh:
+        for j, sim in self.neighbors.get(bi, [])[:self.k_predict]:
             if j in rated:
-                rating = self.matrix[ui, j]
-                num += sim * rating
+                num += sim * self.matrix[ui, j]
                 den += abs(sim)
-        if den == 0:
-            return float(self.item_means[bi])
-        return float(num / den)
+        return float(num / den) if den else float(self.item_means[bi])
 
     def recommend(self, user_id, n=10):
         if user_id not in self.user_index:
             return []
         ui = self.user_index[user_id]
         rated = self.user_rated[ui]
-        scores = {}
-        for bi, neigh in self.neighbors.items():
-            if bi in rated:
-                continue
-            num, den = 0.0, 0.0
-            for j, sim in neigh[:self.k_predict]:
-                if j in rated:
-                    num += sim * self.matrix[ui, j]
-                    den += abs(sim)
-            if den > 0:
-                scores[bi] = num / den
+        num = {}
+        den = {}
+        for rated_bi in rated:
+            rating = self.matrix[ui, rated_bi]
+            for neigh_bi, sim in self.neighbors.get(rated_bi, [])[:self.k_predict]:
+                if neigh_bi in rated:
+                    continue
+                num[neigh_bi] = num.get(neigh_bi, 0.0) + sim * rating
+                den[neigh_bi] = den.get(neigh_bi, 0.0) + abs(sim)
+        if not num:
+            return []
+        scores = {bi: num[bi] / den[bi] for bi in num if den[bi] > 0}
         ranked = sorted(scores.items(), key=lambda kv: -kv[1])
         return [int(self.item_ids[bi]) for bi, _ in ranked[:n]]
 
-    def coverage(self, n=10, max_users=5000):
+    def coverage(self, n=10, max_users=500):
         exposed = set()
         sample = self.user_ids[:max_users]
         for uid in sample:

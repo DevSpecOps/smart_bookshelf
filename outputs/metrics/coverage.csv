@@ -1,0 +1,6 @@
+model,coverage_at_10
+popularity_bayes,0.0016
+popularity_count,0.0012
+content_based,0.6733
+item_cf,0.936
+svd,0.0394

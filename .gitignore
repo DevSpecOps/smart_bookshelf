@@ -8,6 +8,9 @@ venv/
 .ipynb_checkpoints/
 outputs/figures/*.png
 outputs/metrics/*.csv
+!outputs/metrics/summary.csv
+!outputs/metrics/coverage.csv
 .DS_Store
 .vscode/
 .idea/
+

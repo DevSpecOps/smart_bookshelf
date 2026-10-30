@@ -42,3 +42,18 @@ python scripts\run_eda.py
 `scripts/download_data.py` скачивает пять CSV в `archive/` и проверяет, что
 `ratings.csv` содержит 981 756 строк (каноническая версия). Если `archive/`
 уже наполнен, загрузка пропускается.
+
+## Оценка
+
+`src/evaluate.py` выполняет полный цикл offline-оценки:
+
+1. Дедупликация `(user_id, book_id)` — 981 756 → 979 478 оценок (2 278 дубликатов агрегируются средним).
+2. Per-user split 80/20 (`random_state=42`): из каждого пользователя с ≥5 оценками 20% уходят в тест.
+3. Обучение пяти моделей: `popularity_bayes`, `popularity_count`, `content_based`, `item_cf`, `svd`.
+4. Генерация top-N рекомендаций для случайной выборки 5 000 пользователей (все имеют ≥1 релевантную оценку в тесте).
+5. Метрики P@K, R@K, nDCG@K для K ∈ {5, 10, 20} × threshold ∈ {4, 5}.
+6. Покрытие каталога `coverage@10` для каждой модели.
+
+Артефакты: `outputs/metrics/summary.csv`, `outputs/metrics/coverage.csv`,
+`outputs/figures/09_model_comparison_thr4.png`, `09_model_comparison_thr5.png`,
+`10_coverage.png`.
