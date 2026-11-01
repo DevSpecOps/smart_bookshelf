@@ -1,3 +1,5 @@
+[![Build and Evaluate](https://github.com/DevSpecOps/smart_bookshelf/actions/workflows/build.yml/badge.svg)](https://github.com/DevSpecOps/smart_bookshelf/actions/workflows/build.yml)
+
 # Smart Bookshelf
 
 Book recommender prototype on Goodbooks-10k (Kaggle). Compares popularity baseline, content-based (TF-IDF over titles and tags), item-based collaborative filtering, SVD matrix factorization, and a hybrid reciprocal-rank-fusion recommender. Quality is measured with P@K, R@K and nDCG@K on a held-out per-user split.
@@ -22,6 +24,15 @@ On Windows use `.venv\Scripts\Activate.ps1` instead of `source .venv/bin/activat
 
 `scikit-surprise` (used for SVD) needs a C++ toolchain on native installs: MSVC Build Tools on Windows, Xcode Command Line Tools on macOS, `build-essential` + `python3-dev` on Linux. Python 3.13 has no prebuilt wheels for `scikit-surprise` yet - use Docker in that case.
 
+
+## Preview without running anything
+
+The repository already contains the executed notebook and full metric tables.
+Browse `notebooks/report.ipynb` directly on GitHub to see all plots and results.
+
+To view a standalone HTML report, download the `report-docker` artifact from
+the latest [Actions run](https://github.com/DevSpecOps/smart_bookshelf/actions/workflows/build.yml).
+No Python or Docker needed - just open the HTML in a browser.
 ## Pipeline
 
     scripts/download_data.py      -> archive/

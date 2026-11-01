@@ -1,0 +1,77 @@
+name: Build and Evaluate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  docker:
+    name: Docker pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t smart-bookshelf .
+
+      - name: Run pipeline
+        run: |
+          mkdir -p outputs notebooks
+          docker run --rm \
+            -v "$PWD/outputs:/app/outputs" \
+            -v "$PWD/notebooks:/app/notebooks" \
+            smart-bookshelf
+
+      - name: Render report to HTML
+        run: |
+          docker run --rm \
+            -v "$PWD/notebooks:/app/notebooks" \
+            smart-bookshelf \
+            jupyter nbconvert --to html /app/notebooks/report.ipynb
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-docker
+          path: |
+            notebooks/report.html
+            outputs/metrics/summary.csv
+            outputs/metrics/coverage.csv
+            outputs/figures/*.png
+          retention-days: 90
+
+  native:
+    name: Native (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pipeline
+        run: python scripts/run_all.py
+
+      - name: Upload metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            outputs/metrics/summary.csv
+            outputs/metrics/coverage.csv
+          retention-days: 30
